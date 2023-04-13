@@ -52,7 +52,7 @@ void tree_in(){
 
 void tree_out(){
   KeyType key;
-  typename decltype(k)::Traverse_t<TraverseFrom> tra;
+  typename decltype(k)::Traverse_t tra;
 
   bool First = true;
   KeyType LastKey;
@@ -63,8 +63,8 @@ void tree_out(){
     LastKey = (KeyType)-1;
   }
 
-  tra.i(root);
-  while(tra.t(&bdbt, &key)){
+  tra.i<TraverseFrom>(root);
+  while(tra.t<TraverseFrom>(&bdbt, &key)){
     if constexpr(TraverseFrom == 0){
       if(key <= LastKey){
         if(First == false){
