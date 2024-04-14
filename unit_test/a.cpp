@@ -6,13 +6,13 @@
 #define BDBT_set_type_node uint32_t
 #define BDBT_set_BitPerNode __bpn
 #define BDBT_set_declare_rest 1
-#define BDBT_set_KeySize 0
 #define BDBT_set_declare_Key 1
-#define BDBT_set_Language 1
-#define BDBT_set_BaseLibrary 0
+#define BDBT_set_lcpp
+#ifdef __KeySize
+  #define BDBT_set_KeySize __KeySize
+#endif
 #define BDBT_set_CPP_ConstructDestruct
 #include <WITCH/BDBT/BDBT.h>
-#undef __bpn
 
 bdbt_t bdbt;
 bdbt_NodeReference_t root;
@@ -22,12 +22,21 @@ constexpr bool BitOrderMatters = __BitOrderMatters;
 constexpr uint8_t TraverseFrom = __TraverseFrom;
 #undef __TraverseFrom
 
-using KeyType = uint32_t;
-constexpr uint32_t TestSize = 1000000;
+using KeyType = uint64_t;
+constexpr uint32_t TestSize = 500000;
 
-static_assert(TestSize <= ((uint64_t )1 << sizeof(KeyType) * 8));
+bdbt_Key_t<
+  #ifndef __KeySize
+    RealKeySize,
+  #endif
+  BitOrderMatters
+>k;
 
-bdbt_Key_t<sizeof(KeyType) * 8, BitOrderMatters> k;
+#ifdef __KeySize
+  #define PassKeySize_ RealKeySize,
+#else
+  #define PassKeySize_
+#endif
 
 struct{
   uint8_t NeedToBeExist : 1, QueryFound : 1, TraverseFound : 1;
@@ -42,20 +51,20 @@ void tree_in(){
     KeyType key = i;
     typename decltype(k)::KeySize_t ki;
     auto sub_root = root;
-    k.q(&bdbt, &key, &ki, &sub_root);
-    if(ki != sizeof(KeyType) * 8){
+    k.q(&bdbt, PassKeySize_ &key, &ki, &sub_root);
+    if(ki != RealKeySize){
       KeyMap[key].NeedToBeExist = true;
-      k.a(&bdbt, &key, ki, sub_root, output);
+      k.a(&bdbt, PassKeySize_ &key, ki, sub_root, output);
     }
   }
 }
 
 void tree_out(){
-  KeyType key;
+  KeyType key = 0;
   typename decltype(k)::Traverse_t tra;
 
   bool First = true;
-  KeyType LastKey;
+  KeyType LastKey; // value of LastKey is not used if TraverseFrom is not below checks
   if constexpr(TraverseFrom == 0){
     LastKey = 0;
   }
@@ -63,8 +72,27 @@ void tree_out(){
     LastKey = (KeyType)-1;
   }
 
-  tra.i<TraverseFrom>(root);
-  while(tra.t<TraverseFrom>(&bdbt, &key)){
+  #ifdef __KeySize
+    decltype(tra)::ta_t ta[tra.GetTraverseArraySize(RealKeySize)];
+    tra.i<TraverseFrom>(ta, root);
+  #else
+    tra.i<TraverseFrom>(root);
+  #endif
+
+  while(
+    tra.t<TraverseFrom>(
+      &bdbt,
+      #ifdef __KeySize
+        ta,
+        RealKeySize,
+      #endif
+      &key
+    )
+  ){
+    if(key >= TestSize){
+      __abort();
+    }
+
     if constexpr(TraverseFrom == 0){
       if(key <= LastKey){
         if(First == false){
@@ -97,8 +125,16 @@ void QueryAll(){
     KeyType key = i;
     typename decltype(k)::KeySize_t ki;
     auto sub_root = root;
-    k.q(&bdbt, &key, &ki, &sub_root);
-    if(KeyMap[i].NeedToBeExist != (ki == sizeof(KeyType) * 8)){
+    k.q(
+      &bdbt,
+      #ifdef __KeySize
+        RealKeySize,
+      #endif
+      &key,
+      &ki,
+      &sub_root
+    );
+    if(KeyMap[i].NeedToBeExist != (ki == RealKeySize)){
       __abort();
     }
   }
@@ -131,7 +167,14 @@ void DeleteRandom(){
       continue;
     }
     KeyType key = r;
-    k.r(&bdbt, &key, root);
+    k.r(
+      &bdbt,
+      #ifdef __KeySize
+        RealKeySize,
+      #endif
+      &key,
+      root
+    );
     KeyMap[r].NeedToBeExist = false;
   }
 }
