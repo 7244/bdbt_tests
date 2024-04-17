@@ -12,7 +12,7 @@
   #define BDBT_set_KeySize __KeySize
 #endif
 #define BDBT_set_CPP_ConstructDestruct
-#include <WITCH/BDBT/BDBT.h>
+#include <BDBT/BDBT.h>
 
 bdbt_t bdbt;
 bdbt_NodeReference_t root;
@@ -182,8 +182,6 @@ void DeleteRandom(){
 int main(){
   KeyMap = (decltype(KeyMap))calloc(TestSize, sizeof(KeyMap[0]));
 
-  bdbt_Open(&bdbt);
-
   root = bdbt_NewNode(&bdbt);
 
   tree_in();
@@ -199,6 +197,8 @@ int main(){
   if(Current0 != Current1){
     __abort();
   }
+
+  free(KeyMap);
 
   return 0;
 }
