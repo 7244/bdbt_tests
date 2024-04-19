@@ -2,12 +2,17 @@
 #include <WITCH/PR/PR.h>
 #include <WITCH/RAND/RAND.h>
 
+#ifndef set_UseZeroAsInvalid
+  #define set_UseZeroAsInvalid 0
+#endif
+
 #define BDBT_set_prefix bdbt
 #define BDBT_set_type_node uint32_t
 #define BDBT_set_BitPerNode __bpn
 #define BDBT_set_declare_rest 1
 #define BDBT_set_declare_Key 1
 #define BDBT_set_lcpp
+#define BDBT_set_UseZeroAsInvalid set_UseZeroAsInvalid
 #ifdef __KeySize
   #define BDBT_set_KeySize __KeySize
 #endif
@@ -17,7 +22,10 @@
 bdbt_t bdbt;
 bdbt_NodeReference_t root;
 
-constexpr bool BitOrderMatters = __BitOrderMatters;
+#ifndef __KeySize
+  /* TODO runtime bdbt keys are always processing bit order for now. */
+  constexpr bool BitOrderMatters = __BitOrderMatters;
+#endif
 #undef __BitOrderMatters
 constexpr uint8_t TraverseFrom = __TraverseFrom;
 #undef __TraverseFrom
@@ -25,12 +33,11 @@ constexpr uint8_t TraverseFrom = __TraverseFrom;
 using KeyType = uint64_t;
 constexpr uint32_t TestSize = 500000;
 
-bdbt_Key_t<
-  #ifndef __KeySize
-    RealKeySize,
-  #endif
-  BitOrderMatters
->k;
+bdbt_Key_t
+#ifndef __KeySize
+  <RealKeySize, BitOrderMatters>
+#endif
+k;
 
 #ifdef __KeySize
   #define PassKeySize_ RealKeySize,
@@ -47,7 +54,7 @@ void tree_in(){
     if(KeyMap[i].NeedToBeExist == true){
       continue;
     }
-    bdbt_NodeReference_t output = i;
+    bdbt_NodeReference_t output = i + set_UseZeroAsInvalid;
     KeyType key = i;
     typename decltype(k)::KeySize_t ki;
     auto sub_root = root;
