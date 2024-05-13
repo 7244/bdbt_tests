@@ -14,6 +14,7 @@
 #define BDBT_set_lcpp
 #define BDBT_set_UseZeroAsInvalid set_UseZeroAsInvalid
 #ifdef __KeySize
+  #define BDBT_set_MaxKeySize 8 * 8
   #define BDBT_set_KeySize __KeySize
 #endif
 #define BDBT_set_CPP_ConstructDestruct
@@ -79,18 +80,12 @@ void tree_out(){
     LastKey = (KeyType)-1;
   }
 
-  #ifdef __KeySize
-    decltype(tra)::ta_t ta[tra.GetTraverseArraySize(RealKeySize)];
-    tra.i<TraverseFrom>(ta, root);
-  #else
-    tra.i<TraverseFrom>(root);
-  #endif
+  tra.i<TraverseFrom>(root);
 
   while(
     tra.t<TraverseFrom>(
       &bdbt,
       #ifdef __KeySize
-        ta,
         RealKeySize,
       #endif
       &key
