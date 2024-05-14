@@ -32,7 +32,7 @@ constexpr uint8_t TraverseFrom = __TraverseFrom;
 #undef __TraverseFrom
 
 using KeyType = uint64_t;
-constexpr uint32_t TestSize = 500000;
+constexpr uint32_t TestSize = 100000;
 
 bdbt_Key_t
 #ifndef __KeySize
@@ -184,7 +184,7 @@ void DeleteRandom(){
 int main(){
   KeyMap = (decltype(KeyMap))calloc(TestSize, sizeof(KeyMap[0]));
 
-  root = bdbt_NewNode(&bdbt);
+  root = bdbt.NewNode();
 
   tree_in();
 

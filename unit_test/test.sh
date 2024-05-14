@@ -5,6 +5,14 @@ CompilerBaseArg+=" a.cpp"
 
 TIMEFORMAT=%R
 
+function cleanup {
+  rm /tmp/bdbt_test.exe 2> /dev/null
+}
+function exit2 {
+  cleanup
+  exit $1
+}
+
 function do_test {
   declare -a g_Compiler=("clang++" "g++")
   declare -a g_CompileSetting=("" "-g" "-O0" "-O1" "-O2" "-O3" "-O3 -march=native -mtune=native")
@@ -13,10 +21,15 @@ function do_test {
 
   function ex {
     echo executing $1
-    time $1
+    $1 -o/tmp/bdbt_test.exe
+    if [[ $? -ne 0 ]] ; then
+      echo compile is failed, return value is not 0.
+      exit2 1
+    fi
+    /tmp/bdbt_test.exe
     if [[ $? -ne 0 ]] ; then
       echo execute is failed, return value is not 0.
-      exit 1
+      exit2 1
     fi
   }
 
@@ -32,14 +45,15 @@ function do_test {
           do
             for Compiler in "${g_Compiler[@]}"
             do
-              ex "$Compiler $CompilerBaseArg -oa.exe $CompileSetting -DRealKeySize=$RealKeySize -D__bpn=$__bpn $BitOrderMatters $KeySize"
-              ex ./a.exe
+              ex "$Compiler $CompilerBaseArg $CompileSetting -DRealKeySize=$RealKeySize -D__bpn=$__bpn $BitOrderMatters $KeySize"
             done
           done
         done
       done
     done
   done
+
+  cleanup
 }
 
 function do_bench {
@@ -89,6 +103,11 @@ function do_bench {
   echo $sum0
   echo $sum1
 }
+
+trap_int() {
+  cleanup
+}
+trap trap_int INT
 
 if [[ "$#" -ne 0 ]] ; then
   if [[ "$1" == "test" ]] ; then
