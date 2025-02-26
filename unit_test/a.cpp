@@ -9,13 +9,11 @@
 #define BDBT_set_prefix bdbt
 #define BDBT_set_type_node uint32_t
 #define BDBT_set_BitPerNode __bpn
-#define BDBT_set_declare_rest 1
-#define BDBT_set_declare_Key 1
 #define BDBT_set_lcpp
 #define BDBT_set_UseZeroAsInvalid set_UseZeroAsInvalid
-#ifdef __KeySize
-  #define BDBT_set_MaxKeySize 8 * 8
-  #define BDBT_set_KeySize __KeySize
+#if __KeySize
+  //#define BDBT_set_MaxKeySize 8 * 8
+  #define BDBT_set_KeySize RealKeySize
 #endif
 #define BDBT_set_CPP_ConstructDestruct
 #include <BDBT/BDBT.h>
@@ -23,10 +21,7 @@
 bdbt_t bdbt;
 bdbt_NodeReference_t root;
 
-#ifndef __KeySize
-  /* TODO runtime bdbt keys are always processing bit order for now. */
-  constexpr bool BitOrderMatters = __BitOrderMatters;
-#endif
+constexpr bool BitOrderMatters = __BitOrderMatters;
 #undef __BitOrderMatters
 constexpr uint8_t TraverseFrom = __TraverseFrom;
 #undef __TraverseFrom
@@ -34,13 +29,7 @@ constexpr uint8_t TraverseFrom = __TraverseFrom;
 using KeyType = uint64_t;
 constexpr uint32_t TestSize = 100000;
 
-bdbt_Key_t
-#ifndef __KeySize
-  <RealKeySize, BitOrderMatters>
-#endif
-k;
-
-#ifdef __KeySize
+#if !__KeySize
   #define PassKeySize_ RealKeySize,
 #else
   #define PassKeySize_
@@ -57,35 +46,52 @@ void tree_in(){
     }
     bdbt_NodeReference_t output = i + set_UseZeroAsInvalid;
     KeyType key = i;
-    typename decltype(k)::KeySize_t ki;
+    bdbt_KeySize_t ki;
     auto sub_root = root;
-    k.q(&bdbt, PassKeySize_ &key, &ki, &sub_root);
+    bdbt_QueryNoPointer(&bdbt, BitOrderMatters, PassKeySize_ &key, &ki, &sub_root);
     if(ki != RealKeySize){
       KeyMap[key].NeedToBeExist = true;
-      k.a(&bdbt, PassKeySize_ &key, ki, sub_root, output);
+      bdbt_Add(&bdbt, BitOrderMatters, PassKeySize_ &key, ki, sub_root, output);
     }
   }
 }
 
 void tree_out(){
   KeyType key = 0;
-  typename decltype(k)::Traverse_t tra;
+  bdbt_Traverse_t tra;
 
   bool First = true;
   KeyType LastKey; // value of LastKey is not used if TraverseFrom is not below checks
-  if constexpr(TraverseFrom == 0){
+  if constexpr(TraverseFrom == bdbt_BitOrderLow){
     LastKey = 0;
   }
-  else if(TraverseFrom == 1){
+  else if(TraverseFrom == bdbt_BitOrderHigh){
     LastKey = (KeyType)-1;
   }
 
-  tra.i<TraverseFrom>(root);
+  #if !__KeySize
+    bdbt_Traverse_InternalDataPerKeyNode_t idpkn[RealKeySize / __bpn];
+  #endif
+
+  bdbt_TraverseInit(
+    &tra,
+    TraverseFrom,
+    #if !__KeySize
+      idpkn,
+    #endif
+    root
+  );
 
   while(
-    tra.t<TraverseFrom>(
+    bdbt_Traverse(
       &bdbt,
-      #ifdef __KeySize
+      &tra,
+      #if !__KeySize
+        idpkn,
+      #endif
+      BitOrderMatters,
+      TraverseFrom,
+      #if !__KeySize
         RealKeySize,
       #endif
       &key
@@ -95,7 +101,7 @@ void tree_out(){
       __abort();
     }
 
-    if constexpr(TraverseFrom == 0){
+    if constexpr(TraverseFrom == bdbt_BitOrderLow){
       if(key <= LastKey){
         if(First == false){
           __abort();
@@ -103,7 +109,7 @@ void tree_out(){
         First = false;
       }
     }
-    else if(TraverseFrom == 1){
+    else if(TraverseFrom == bdbt_BitOrderHigh){
       if(key >= LastKey){
         if(First == false){
           __abort();
@@ -125,11 +131,12 @@ void QueryAll(){
       continue;
     }
     KeyType key = i;
-    typename decltype(k)::KeySize_t ki;
+    bdbt_KeySize_t ki;
     auto sub_root = root;
-    k.q(
+    bdbt_QueryNoPointer(
       &bdbt,
-      #ifdef __KeySize
+      BitOrderMatters,
+      #if !__KeySize
         RealKeySize,
       #endif
       &key,
@@ -168,14 +175,25 @@ void DeleteRandom(){
     if(KeyMap[r].NeedToBeExist != true){
       continue;
     }
+
+    #if !__KeySize
+      bdbt_Remove_InternalDataPerKeyNode_t idpkn[RealKeySize / __bpn];
+    #endif
+
+    auto sub_root = root;
+
     KeyType key = r;
-    k.r(
+    bdbt_Remove(
       &bdbt,
-      #ifdef __KeySize
+      #if !__KeySize
+        idpkn,
+      #endif
+      BitOrderMatters,
+      #if !__KeySize
         RealKeySize,
       #endif
       &key,
-      root
+      &sub_root
     );
     KeyMap[r].NeedToBeExist = false;
   }

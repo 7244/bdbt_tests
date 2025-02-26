@@ -16,7 +16,7 @@ function exit2 {
 function do_test {
   declare -a g_Compiler=("clang++" "g++")
   declare -a g_CompileSetting=("" "-g" "-O0" "-O1" "-O2" "-O3" "-O3 -march=native -mtune=native")
-  declare -a g_BitOrderMatters=("-D__BitOrderMatters=false -D__TraverseFrom=2" "-D__BitOrderMatters=true -D__TraverseFrom=0" "-D__BitOrderMatters=true -D__TraverseFrom=1")
+  declare -a g_BitOrderMatters=("-D__BitOrderMatters=false -D__TraverseFrom=bdbt_BitOrderAny" "-D__BitOrderMatters=true -D__TraverseFrom=bdbt_BitOrderLow" "-D__BitOrderMatters=true -D__TraverseFrom=bdbt_BitOrderHigh")
   declare -a g_KeySize=("" "-D__KeySize=0")
 
   function ex {
@@ -60,7 +60,7 @@ function do_bench {
   declare -a g_Compiler=("clang++" "g++")
   declare -a g_CompileSetting=("-O3" "-O3 -march=native -mtune=native")
   declare -a g_BitOrderMatters=("-D__BitOrderMatters=false -D__TraverseFrom=2" "-D__BitOrderMatters=true -D__TraverseFrom=0" "-D__BitOrderMatters=true -D__TraverseFrom=1")
-  declare -a g_KeySize=("" "-D__KeySize=0")
+  declare -a g_KeySize=("-D__KeySize=0" "-D__KeySize=1")
 
   function ex {
     $1
